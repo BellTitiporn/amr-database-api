@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMR Real-Time Monitor</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            border-left: 6px solid #3b82f6;
+        }
+
+        .card.orange { border-left-color: #ea580c; }
+        .card.green { border-left-color: #16a34a; }
+        .card.purple { border-left-color: #8b5cf6; }
+
+        .card h3 { margin-top: 0; margin-bottom: 12px; font-size: 18px; }
+        .card p { margin: 8px 0; font-size: 15px; }
+
+        .form-group { margin-bottom: 12px; }
+        .form-inline { display: flex; gap: 12px; flex-wrap: wrap; }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        input[type="number"], select {
+            width: 100%;
+            max-width: 300px;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            background: #ffffff;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            max-width: 400px;
+            background: #ffffff;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: #3b82f6;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .btn:hover { background-color: #2563eb; }
+        .btn-orange { background-color: #ea580c; }
+        .btn-orange:hover { background-color: #c2410c; }
+        .btn-green { background-color: #16a34a; }
+        .btn-green:hover { background-color: #15803d; }
+        .btn-red { background-color: #ef4444; }
+        .btn-red:hover { background-color: #dc2626; }
+
+        .canvas-container {
+            margin-top: 15px;
+            background: #0f172a;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 550px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            background-color: #ffffff;
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+
+        .map-config-box {
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            margin-top: 10px;
+            margin-bottom: 15px;
+        }
+
+        .goal-info-badge {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #86efac;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🤖 AMR Real-Time Monitor</h1>
+
+        <!-- Card 1: AMR Status -->
+        <div class="card">
+            <h3>AMR-01 Status</h3>
+            <p><strong>Connection:</strong> <span id="wsStatus" style="font-weight: bold; color: #ef4444;">🔴 Connecting...</span></p>
+            <p><strong>Name:</strong> <span id="amrName">AMR-01</span></p>
+            <p><strong>Current Pose:</strong> X: <span id="poseX">0.00</span>, Y: <span id="poseY">0.00</span>, Theta: <span id="poseTheta">0.00</span></p>
+            <button class="btn" onclick="fetchPose()">🔄 Manual Refresh Pose</button>
+        </div>
+
+        <!-- Card 2: Update Pose -->
+        <div class="card orange">
+            <h3>Update Pose (Simulate AMR Movement)</h3>
+            <div class="form-group form-inline">
+                <div>
+                    <label for="inputX">X (m):</label>
+                    <input type="number" id="inputX" step="0.1" value="5.5">
+                </div>
+                <div>
+                    <label for="inputY">Y (m):</label>
+                    <input type="number" id="inputY" step="0.1" value="2.3">
+                </div>
+                <div>
+                    <label for="inputTheta">Theta (rad):</label>
+                    <input type="number" id="inputTheta" step="0.1" value="1.57">
+                </div>
+            </div>
+            <button class="btn btn-orange" onclick="updatePose()">Update Pose</button>
+        </div>
+
+        <!-- Card 3: Upload Map Files -->
+        <div class="card green">
+            <h3>🗺️ Upload Map Files (.yaml, .pgm, .png, .geojson)</h3>
+            <div class="form-group">
+                <input type="file" id="mapFileInput" multiple accept=".yaml,.pgm,.png,.geojson">
+            </div>
+            <button class="btn btn-green" onclick="uploadMapFiles()">Upload Map Files</button>
+            <div id="uploadStatus"></div>
+        </div>
+
+        <!-- Card 4: Interactive Canvas Map -->
+        <div class="card purple">
+            <h3>🎯 Interactive Map (Click Map to Set Target Goal)</h3>
+            
+            <div class="form-group">
+                <label for="mapSelect">เลือกรูปภาพแผนที่:</label>
+                <div style="display: flex; gap: 10px;">
+                    <select id="mapSelect" onchange="loadMapImage()" style="flex: 1;">
+                        <option value="">-- กำลังโหลดรายการ... --</option>
+                    </select>
+                    <button class="btn btn-red" onclick="deleteSelectedMap()" style="margin-top: 0;">🗑️ Delete Map</button>
+                </div>
+            </div>
+
+            <!-- Map Calibration Box -->
+            <div class="map-config-box">
+                <strong style="font-size: 14px; color: #475569;">⚙️ Map Calibration (จากไฟล์ .yaml):</strong>
+                <div class="form-inline" style="margin-top: 8px;">
+                    <div>
+                        <label for="resInput" style="font-size: 12px;">Resolution (m/pix):</label>
+                        <input type="number" id="resInput" step="0.001" value="0.05" onchange="redrawCanvas()" style="width: 120px;">
+                    </div>
+                    <div>
+                        <label for="originXInput" style="font-size: 12px;">Origin X (m):</label>
+                        <input type="number" id="originXInput" step="0.1" value="0.0" onchange="redrawCanvas()" style="width: 120px;">
+                    </div>
+                    <div>
+                        <label for="originYInput" style="font-size: 12px;">Origin Y (m):</label>
+                        <input type="number" id="originYInput" step="0.1" value="0.0" onchange="redrawCanvas()" style="width: 120px;">
+                    </div>
+                </div>
+                <!-- แสดงเป้าหมายที่ถูกคลิกสั่งงานล่าสุด -->
+                <div id="goalBadge" class="goal-info-badge" style="display: none;">
+                    🎯 Target Goal Set: X: <span id="goalXText">0.00</span> m, Y: <span id="goalYText">0.00</span> m
+                </div>
+            </div>
+
+            <!-- HTML5 Canvas -->
+            <div class="canvas-container">
+                <canvas id="mapCanvas" width="600" height="400"></canvas>
+            </div>
+        </div>
+
+        <a href="/swagger-ui/" class="swagger-link" target="_blank" style="color: #7e22ce; font-weight: 600; text-decoration: none;">📖 Open Swagger UI Documentation →</a>
+    </div>
+
+    <script>
+        let currentPose = { x: 5.5, y: 2.3, theta: 1.57 };
+        let currentGoal = null;
+        let mapImage = new Image();
+        let isMapLoaded = false;
+
+        const canvas = document.getElementById('mapCanvas');
+
+        // 🌐 1. ฟังก์ชันสร้างการเชื่อมต่อ WebSocket Real-Time
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                console.log("🟢 WebSocket Connected!");
+                const statusElem = document.getElementById('wsStatus');
+                statusElem.innerText = "🟢 Realtime Connected";
+                statusElem.style.color = "#16a34a";
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.amr_name === "AMR-01") {
+                        currentPose = data.pose;
+
+                        // อัปเดตข้อมูลบน UI
+                        document.getElementById('poseX').innerText = currentPose.x.toFixed(2);
+                        document.getElementById('poseY').innerText = currentPose.y.toFixed(2);
+                        document.getElementById('poseTheta').innerText = currentPose.theta.toFixed(2);
+
+                        // วาดตำแหน่งหุ่นยนต์ใหม่บน Canvas ทันที
+                        redrawCanvas();
+                    }
+                } catch (err) {
+                    console.error("Error parsing WS message:", err);
+                }
+            };
+
+            socket.onclose = () => {
+                console.log("🔴 WebSocket Disconnected. Retrying in 2 seconds...");
+                const statusElem = document.getElementById('wsStatus');
+                statusElem.innerText = "🔴 Disconnected";
+                statusElem.style.color = "#ef4444";
+                setTimeout(connectWebSocket, 2000);
+            };
+
+            socket.onerror = (err) => {
+                console.error("WebSocket Error:", err);
+                socket.close();
+            };
+        }
+
+        // 🎯 2. Event Listener ตรวจจับการคลิกบน Canvas (Interactive Click-to-Goal)
+        canvas.addEventListener('click', function(evt) {
+            if (!isMapLoaded) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const clickPixelX = (evt.clientX - rect.left) * scaleX;
+            const clickPixelY = (evt.clientY - rect.top) * scaleY;
+
+            const resolution = parseFloat(document.getElementById('resInput').value) || 0.05;
+            const originX = parseFloat(document.getElementById('originXInput').value) || 0.0;
+            const originY = parseFloat(document.getElementById('originYInput').value) || 0.0;
+
+            // แปลง Pixel Coordinate เป็น World Coordinates (Meters)
+            const targetX = (clickPixelX * resolution) + originX;
+            const targetY = ((canvas.height - clickPixelY) * resolution) + originY;
+
+            currentGoal = { x: targetX, y: targetY };
+
+            // แสดง Badge ข้อมูล Goal บน UI
+            document.getElementById('goalXText').innerText = targetX.toFixed(2);
+            document.getElementById('goalYText').innerText = targetY.toFixed(2);
+            document.getElementById('goalBadge').style.display = 'inline-block';
+
+            // วาดหมุดใหม่บน Canvas ทันที
+            redrawCanvas();
+
+            // ส่งข้อมูล Target Goal ไปยัง Backend API
+            sendGoalToBackend(targetX, targetY);
+        });
+
+        // 📡 ส่ง HTTP POST ไปยัง /api/amr/AMR-01/goal
+        async function sendGoalToBackend(x, y) {
+            try {
+                const response = await fetch('/api/amr/AMR-01/goal', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x: x, y: y, theta: 0.0 })
+                });
+
+                if (response.ok) {
+                    console.log(`🎯 Goal set successfully: X=${x.toFixed(2)}, Y=${y.toFixed(2)}`);
+                }
+            } catch (err) {
+                console.error("Error setting goal:", err);
+            }
+        }
+
+        async function fetchPose() {
+            try {
+                const response = await fetch('/api/amr/AMR-01/pose');
+                if (response.ok) {
+                    const data = await response.json();
+                    currentPose = data.pose;
+                    document.getElementById('poseX').innerText = currentPose.x.toFixed(2);
+                    document.getElementById('poseY').innerText = currentPose.y.toFixed(2);
+                    document.getElementById('poseTheta').innerText = currentPose.theta.toFixed(2);
+                    redrawCanvas();
+                }
+            } catch (err) {
+                console.error("Error fetching pose:", err);
+            }
+        }
+
+        async function updatePose() {
+            const payload = {
+                x: parseFloat(document.getElementById('inputX').value),
+                y: parseFloat(document.getElementById('inputY').value),
+                theta: parseFloat(document.getElementById('inputTheta').value)
+            };
+
+            try {
+                const response = await fetch('/api/amr/AMR-01/pose', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) fetchPose();
+            } catch (err) {
+                console.error("Error updating pose:", err);
+            }
+        }
+
+        async function uploadMapFiles() {
+            const fileInput = document.getElementById('mapFileInput');
+            const statusText = document.getElementById('uploadStatus');
+
+            if (fileInput.files.length === 0) {
+                alert('กรุณาเลือกไฟล์แผนที่ก่อนทำการอัปโหลด');
+                return;
+            }
+
+            const formData = new FormData();
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+
+            statusText.innerText = "⏳ กำลังอัปโหลดไฟล์...";
+
+            try {
+                const response = await fetch('/api/map/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    statusText.innerText = "✅ อัปโหลดไฟล์แผนที่สำเร็จเรียบร้อย!";
+                    fileInput.value = "";
+                    fetchMaps();
+                } else {
+                    statusText.innerText = "❌ เกิดข้อผิดพลาดในการอัปโหลดไฟล์";
+                }
+            } catch (err) {
+                console.error(err);
+                statusText.innerText = "❌ ไม่สามารถเชื่อมต่อกับ Server ได้";
+            }
+        }
+
+        async function fetchMaps() {
+            try {
+                const response = await fetch('/api/maps');
+                if (response.ok) {
+                    const files = await response.json();
+                    const select = document.getElementById('mapSelect');
+
+                    select.innerHTML = '<option value="">-- เลือกภาพแผนที่ (.png, .jpg) --</option>';
+
+                    let hasImage = false;
+                    files.forEach(file => {
+                        if (file.toLowerCase().endsWith('.png') || file.toLowerCase().endsWith('.jpg')) {
+                            const option = document.createElement('option');
+                            option.value = file;
+                            option.textContent = file;
+                            select.appendChild(option);
+                            hasImage = true;
+                        }
+                    });
+
+                    if (hasImage) {
+                        select.selectedIndex = 1;
+                        loadMapImage();
+                    } else {
+                        isMapLoaded = false;
+                        redrawCanvas();
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching maps:", err);
+            }
+        }
+
+        async function deleteSelectedMap() {
+            const select = document.getElementById('mapSelect');
+            const filename = select.value;
+
+            if (!filename) {
+                alert('กรุณาเลือกไฟล์แผนที่ที่ต้องการลบก่อนครับ');
+                return;
+            }
+
+            if (!confirm(`คุณต้องการลบไฟล์ "${filename}" ใช่หรือไม่?`)) return;
+
+            try {
+                const response = await fetch(`/api/map/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+
+                if (response.ok) {
+                    alert(`ลบไฟล์ "${filename}" สำเร็จเรียบร้อย`);
+                    isMapLoaded = false;
+                    fetchMaps();
+                } else {
+                    alert('เกิดข้อผิดพลาด ไม่สามารถลบไฟล์ได้');
+                }
+            } catch (err) {
+                console.error("Error deleting map:", err);
+            }
+        }
+
+        function loadMapImage() {
+            const select = document.getElementById('mapSelect');
+            if (select.value) {
+                mapImage.src = `/maps/${select.value}`;
+                mapImage.onload = () => {
+                    isMapLoaded = true;
+                    redrawCanvas();
+                };
+            } else {
+                isMapLoaded = false;
+                redrawCanvas();
+            }
+        }
+
+        function redrawCanvas() {
+            const ctx = canvas.getContext('2d');
+            const resolution = parseFloat(document.getElementById('resInput').value) || 0.05;
+            const originX = parseFloat(document.getElementById('originXInput').value) || 0.0;
+            const originY = parseFloat(document.getElementById('originYInput').value) || 0.0;
+
+            if (isMapLoaded) {
+                canvas.width = mapImage.width;
+                canvas.height = mapImage.height;
+                ctx.drawImage(mapImage, 0, 0);
+            } else {
+                canvas.width = 600;
+                canvas.height = 400;
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '16px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('กรุณาเลือกรูปภาพแผนที่ (.png) เพื่อเริ่มการติดตาม', canvas.width / 2, canvas.height / 2);
+            }
+
+            // คำนวณตำแหน่ง Pixel ของ AMR
+            const robotPxX = (currentPose.x - originX) / resolution;
+            const robotPxY = canvas.height - ((currentPose.y - originY) / resolution);
+
+            // 1. ถ้ามีตำแหน่ง Goal ให้วาดหมุดเป้าหมายสีเขียว + เส้นประเชื่อม
+            if (currentGoal && isMapLoaded) {
+                const goalPxX = (currentGoal.x - originX) / resolution;
+                const goalPxY = canvas.height - ((currentGoal.y - originY) / resolution);
+                
+                drawGoalMarker(ctx, goalPxX, goalPxY);
+
+                // วาดเส้นประเชื่อมระหว่าง AMR กับ Target Goal
+                ctx.beginPath();
+                ctx.setLineDash([6, 6]);
+                ctx.moveTo(robotPxX, robotPxY);
+                ctx.lineTo(goalPxX, goalPxY);
+                ctx.strokeStyle = '#16a34a';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 2. วาดตัวหุ่นยนต์ AMR
+            drawRobotMarker(ctx, robotPxX, robotPxY, currentPose.theta);
+        }
+
+        // วาดหมุดเป้าหมาย Goal (Target Crosshair สีเขียว)
+        function drawGoalMarker(ctx, px, py) {
+            const scaleFactor = Math.max(1, canvas.width / 800);
+
+            ctx.save();
+            ctx.translate(px, py);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 12 * scaleFactor, 0, 2 * Math.PI);
+            ctx.fillStyle = 'rgba(22, 163, 74, 0.3)';
+            ctx.fill();
+            ctx.lineWidth = 2 * scaleFactor;
+            ctx.strokeStyle = '#16a34a';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 4 * scaleFactor, 0, 2 * Math.PI);
+            ctx.fillStyle = '#16a34a';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(-16 * scaleFactor, 0); ctx.lineTo(16 * scaleFactor, 0);
+            ctx.moveTo(0, -16 * scaleFactor); ctx.lineTo(0, 16 * scaleFactor);
+            ctx.strokeStyle = '#16a34a';
+            ctx.lineWidth = 1.5 * scaleFactor;
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        // วาดตัวหุ่นยนต์ AMR (วงกลมพร้อมลูกศรทิศทาง)
+        function drawRobotMarker(ctx, px, py, theta) {
+            ctx.save();
+            ctx.translate(px, py);
+            ctx.rotate(-theta);
+
+            const scaleFactor = Math.max(1, canvas.width / 800);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 14 * scaleFactor, 0, 2 * Math.PI);
+            ctx.fillStyle = '#2563eb';
+            ctx.fill();
+            ctx.lineWidth = 3 * scaleFactor;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(22 * scaleFactor, 0);
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 4 * scaleFactor;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(22 * scaleFactor, 0);
+            ctx.lineTo(14 * scaleFactor, -6 * scaleFactor);
+            ctx.lineTo(14 * scaleFactor, 6 * scaleFactor);
+            ctx.closePath();
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        // เริ่มต้นการทำงาน
+        connectWebSocket();
+        fetchPose();
+        fetchMaps();
+    </script>
+</body>
+</html>

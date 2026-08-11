@@ -1,0 +1,9 @@
+# Rust compilation output
+/target
+
+# Local database
+amr.db
+
+# Uploaded map files (ถ้าต้องการเก็บโฟลเดอร์ไว้แต่ไม่เอาไฟล์ข้างใน)
+/uploads/maps/*
+!.uploads/maps/.gitkeep
