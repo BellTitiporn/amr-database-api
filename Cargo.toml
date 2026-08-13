@@ -6,15 +6,22 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7", features = ["ws","multipart"] }
-tokio = { version = "1", features = ["full", "fs"] }
+# Web & Async Runtime
+axum = { version = "0.7", features = ["ws","multipart"] } # Web Framework หลัก
+tokio = { version = "1", features = ["full", "fs"] } # Asynchronous Runtime
 tokio-stream = "0.1"
-serde = { version = "1.0", features = ["derive"] }
+
+# Serialization & Error Handling
+serde = { version = "1.0", features = ["derive"] } # library for convert data
 serde_json = "1.0"
-diesel = { version = "2.1", features = ["sqlite", "chrono"] }
-chrono = "0.4"
 thiserror = "1.0"  # For custom errors
-sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite"] }
-utoipa = { version = "4.2", features = ["axum_extras"] }
+
+# Database & Time
+diesel = { version = "2.1", features = ["sqlite", "chrono"] } # Query Builder รองรับการใช้งานกับฐานข้อมูล SQLite 
+chrono = "0.4" # library for จัดการวันที่ (Date) เวลา (Time)
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "sqlite"] } # Library  for manage Async database
+
+# API Documentation & Middleware
+utoipa = { version = "4.2", features = ["axum_extras"] } # Library for create swaggerUI
 utoipa-swagger-ui = { version = "7.1", features = ["axum"] }
-tower-http = { version = "0.5", features = ["fs"] }
+tower-http = { version = "0.5", features = ["fs"] } # Middleware สำหรับระบบนิเวศ Tower/Axum ที่ช่วยจัดการเรื่องทั่วไปของ HTTP
